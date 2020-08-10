@@ -1,0 +1,358 @@
+---
+title: "DS6306 Case Study 2"
+author: "Andre Mauldin"
+date: "8/1/2020"
+output: html_document
+---
+## In this study we are analyzing causes of attrition.  We will also set up a model to predict future attrition.
+```{r}
+library(magrittr)
+library(ggplot2)
+library(reshape2)
+library(maps)
+library(dplyr)
+library(tidyr)
+library(tidyverse)
+library(usmap)
+library(GGally)
+library(ggthemes)
+library(gridExtra)
+library(knitr)
+library(kableExtra)
+library(stringr)
+library(class)
+library(caTools)
+library(caret)
+library(e1071)
+library(plotly)
+library(openxlsx)
+turnoverData = read.csv('CaseStudy2-data.csv')
+
+```
+## These helper functions aid in aggregating the data to set up the tables and charts.
+```{r}
+turnover = data.frame(turnoverData)
+turnover = turnover %>% filter(Attrition == "Yes")
+turnover = data.frame(turnover)
+
+turnoverFunc <- function(columnName, data, colString) {
+  arguments <- as.list(match.call())
+  columnName <- eval(arguments$columnName, data)
+  df = turnover %>% 
+    group_by(Attrition, as.factor(columnName)) %>%
+    summarize(count = n())
+  df = arrange(df, desc(count))
+  # df = head(df, 10)
+  df = data.frame(df)
+  colnames(df) = c("Attrition", "AttritionValue", "AttritionCount")
+  dfplot = df %>% ggplot(aes(x=AttritionValue, y=AttritionCount)) + geom_col() + xlab(colString)
+  return(ggplotly(dfplot))
+}
+
+turnoverMax <- function(columnName, data, colString) {
+  arguments <- as.list(match.call())
+  columnName <- eval(arguments$columnName, data)
+  df = turnover %>% 
+    group_by(Attrition, as.factor(columnName)) %>%
+    summarize(`Attrition Count` = n()) # %>%
+    # filter(`Attrition Count` == max(`Attrition Count`))
+  
+  # df = arrange(df, desc(count))
+  # df = head(df, 10)
+  # df = data.frame(df)
+  colnames(df) = c("Attrition", "Attrition Factor", "Attrition Count")
+  df = df %>% mutate(Reason = colString)
+  return(df)
+}
+
+```
+## This table shows all Reasons and factors contributing to attrition.  The Reasons are the column names from the data set.  The factors are the factors in those columns. The Attrition Count is the number of times Attrittion equaled "Yes" per Attrition Factor.  It is sorted descending by Attrition Factor.
+```{r}
+AgeColumn = turnoverMax(Age, data=turnover, "Age")
+BusinessTravelColumn = turnoverMax(BusinessTravel, data=turnover, "Business Travel")
+
+turnoverFactors = rbind(AgeColumn, BusinessTravelColumn)
+
+DepartmentColumn = turnoverMax(Department, data=turnover, "Department")
+turnoverFactors = rbind(turnoverFactors, DepartmentColumn)
+
+DistanceFromHomeColumn = turnoverMax(DistanceFromHome, data=turnover, "Distance from Home")
+turnoverFactors = rbind(turnoverFactors, DistanceFromHomeColumn)
+
+EducationColumn = turnoverMax(Education, data=turnover, "Education")
+turnoverFactors = rbind(turnoverFactors, EducationColumn)
+
+EducationFieldColumn = turnoverMax(EducationField, data=turnover, "Education Field")
+turnoverFactors = rbind(turnoverFactors, EducationFieldColumn)
+
+EnvironmentSatisfactionColumn = turnoverMax(EnvironmentSatisfaction, data=turnover, "Emvironment Satisfaction")
+turnoverFactors = rbind(turnoverFactors, EnvironmentSatisfactionColumn)
+
+GenderColumn = turnoverMax(Gender, data=turnover, "Gender")
+turnoverFactors = rbind(turnoverFactors, GenderColumn) 
+
+HourlyRateColumn = turnoverMax(HourlyRate, data=turnover, "Hourly Rate")
+turnoverFactors = rbind(turnoverFactors, HourlyRateColumn) 
+
+JobInvolvementColumn = turnoverMax(JobInvolvement, data=turnover, "Job Involvment")
+turnoverFactors = rbind(turnoverFactors, JobInvolvementColumn) 
+  
+JobLevelColumn = turnoverMax(JobLevel, data=turnover, "Job Level")
+turnoverFactors = rbind(turnoverFactors, JobLevelColumn)
+  
+
+JobRoleColumn = turnoverMax(JobRole, data=turnover, "Job Role")
+turnoverFactors = rbind(turnoverFactors, JobRoleColumn)
+
+JobSatisfactionColumn = turnoverMax(JobSatisfaction, data=turnover, "Job Satisfaction")
+turnoverFactors = rbind(turnoverFactors, JobSatisfactionColumn) 
+
+MaritalStatusColumn = turnoverMax(MaritalStatus, data=turnover, "Marital Status")
+turnoverFactors = rbind(turnoverFactors, MaritalStatusColumn)
+
+MonthlyIncomeColumn = turnoverMax(MonthlyIncome, data=turnover, "Monthly Income")
+turnoverFactors = rbind(turnoverFactors, MonthlyIncomeColumn)
+
+MonthlyRateColumn = turnoverMax(MonthlyRate, data=turnover, "Monthly Rate")
+turnoverFactors = rbind(turnoverFactors, MonthlyRateColumn)
+
+NumCompaniesWorkedColumn = turnoverMax(NumCompaniesWorked, data=turnover, "Number of Companies Worked")
+turnoverFactors = rbind(turnoverFactors, NumCompaniesWorkedColumn) 
+
+Over18Column = turnoverMax(Over18, data=turnover, "Over 18")
+turnoverFactors = rbind(turnoverFactors, Over18Column)
+
+OverTimeColumn = turnoverMax(OverTime, data=turnover, "Overtime")
+turnoverFactors = rbind(turnoverFactors, OverTimeColumn)
+
+PercentSalaryHikeColumn = turnoverMax(PercentSalaryHike, data=turnover, "Percent Salary Hike")
+turnoverFactors = rbind(turnoverFactors, PercentSalaryHikeColumn)  
+
+PerformanceRatingColumn = turnoverMax(PerformanceRating, data=turnover, "Performance Rating")
+turnoverFactors = rbind(turnoverFactors, PerformanceRatingColumn)
+
+RelationshipSatisfactionColumn = turnoverMax(RelationshipSatisfaction, data=turnover, "Relationship Satisfaction")
+turnoverFactors = rbind(turnoverFactors, RelationshipSatisfactionColumn)
+
+StandardHoursColumn = turnoverMax(StandardHours, data=turnover, "Standard Hours")
+turnoverFactors = rbind(turnoverFactors, StandardHoursColumn)
+
+StockOptionLevelColumn = turnoverMax(StockOptionLevel, data=turnover, "Stock Option Level")
+turnoverFactors = rbind(turnoverFactors, StockOptionLevelColumn)
+
+TotalWorkingYearsColumn = turnoverMax(TotalWorkingYears, data=turnover, "Total Working Years")
+turnoverFactors = rbind(turnoverFactors, TotalWorkingYearsColumn)
+
+TrainingTimesLastYearColumn = turnoverMax(TrainingTimesLastYear, data=turnover, "Training Times Last Year")
+turnoverFactors = rbind(turnoverFactors, TrainingTimesLastYearColumn)
+
+WorkLifeBalanceColumn = turnoverMax(WorkLifeBalance, data=turnover, "Work Life Balance")
+turnoverFactors = rbind(turnoverFactors, WorkLifeBalanceColumn)
+
+YearsAtCompanyColumn = turnoverMax(YearsAtCompany, data=turnover, "Years At Company")
+turnoverFactors = rbind(turnoverFactors, YearsAtCompanyColumn)
+
+YearsInCurrentRoleColumn = turnoverMax(YearsInCurrentRole, data=turnover, "Years In Current Role")
+turnoverFactors = rbind(turnoverFactors, YearsInCurrentRoleColumn)
+
+YearsSinceLastPromotionColumn = turnoverMax(YearsSinceLastPromotion, data=turnover, "Years Since Last Promotion")
+turnoverFactors = rbind(turnoverFactors, YearsSinceLastPromotionColumn)
+
+YearsWithCurrManagerColumn = turnoverMax(YearsWithCurrManager, data=turnover, "Years With Current Manager")
+turnoverFactors = rbind(turnoverFactors, YearsWithCurrManagerColumn)
+
+turnoverFactorsSorted = turnoverFactors  %>% arrange(desc(`Attrition Count`))
+turnoverFactorsSorted %>% select(Reason, `Attrition Factor`, `Attrition Count`)
+
+```
+## Top 3 Attrition Factors
+The top 3 attrition factors are Performance Rating of 3, Stock Option Level of 0, and Business Travel with a factor of Travel_Rarely.
+```{r}
+turnoverFactorsBarChart = turnoverFactorsSorted %>% filter(Reason == "Performance Rating" | Reason == "Stock Option Level" | Reason == "Business Travel") %>% ggplot(aes(x=reorder(Reason, `Attrition Count`), y=`Attrition Count`, fill=`Attrition Factor`)) + geom_col(position="dodge2") + coord_flip() + xlab("Attrition Factor") + ggtitle("Top 3 Attrition Factors")
+ggplotly(turnoverFactorsBarChart)
+```
+
+## Reasons by Factor
+This shows all Reasons broken down by Factor. We ignore Standard Hours and Over 18 as all employees work standard hours and are over 18.
+```{r}
+turnoverFactorsBarChart = turnoverFactorsSorted %>% ggplot(aes(x=reorder(Reason, `Attrition Count`), y=`Attrition Count`, fill=`Attrition Factor`)) + geom_col(position="dodge2") + coord_flip() + theme(legend.position = "")
+ggplotly(turnoverFactorsBarChart, height=1000)
+```
+##Job Role Specific Trends
+```{r}
+
+```
+
+##Predictions of Attrition
+Personal Points
+Age	29
+DistanceFromHome	1
+Education	3
+EducationField	Life Sciences
+EnvironmentSatisfaction	1
+Gender	Male
+JobSatisfaction	
+MaritalStatus	Single
+NumCompaniesWorked	1
+RelationshipSatisfaction	4
+TotalWorkingYears	
+WorkLifeBalance	3
+
+Business Points
+BusinessTravel	Travel_Rarely	
+Department	Research & Development	
+JobInvolvement	3	
+JobLevel	1	
+JobRole	Sales Executive	| Research Scientist
+OverTime	Yes	
+PerformanceRating	3	
+StockOptionLevel	0	
+TrainingTimesLastYear	2	
+YearsInCurrentRole	0 |	2
+YearsSinceLastPromotion	0	
+YearsWithCurrManager	0	
+
+
+```{r}
+# Set up the points system
+turnoverPoints = turnoverData %>% mutate(
+  PersonalPoints = (
+    ifelse(Age == 29, 1,0) +
+    ifelse(DistanceFromHome == 1, 1,0) +
+    ifelse(Education  == 3, 1,0) +
+    ifelse(EducationField  == "Life Sciences", 1,0) +
+    ifelse(EnvironmentSatisfaction  == 1, 1,0) +
+    ifelse(Gender  == "Male", 1,0) +
+    ifelse(MaritalStatus  == "Single", 1,0) +
+    ifelse(NumCompaniesWorked  == 1, 1,0) +
+    ifelse(RelationshipSatisfaction  == 4, 1,0) +
+    ifelse(WorkLifeBalance  == 3, 1,0)
+  ),
+  BusinessPoints = (
+    ifelse(Department == "Research % Development", 1,0) +
+    ifelse(JobInvolvement == 3, 1,0) +
+    ifelse(JobLevel == 1, 1,0) +
+    ifelse(JobRole == "Sales Executive" | JobRole == "Research Scientist", 1,0) +
+    ifelse(OverTime == "Yes", 1, 0) +
+    ifelse(PerformanceRating == 3, 1,0) +
+    ifelse(StockOptionLevel == 0, 1,0) +
+    ifelse(TrainingTimesLastYear == 2, 1,0) +
+    ifelse(YearsInCurrentRole == 0 | YearsInCurrentRole == 2, 1,0) +
+    ifelse(YearsSinceLastPromotion == 0, 1,0) +
+    ifelse(YearsWithCurrManager == 0, 1,0)
+  )
+)
+
+turnoverPoints = turnoverPoints %>% select(ID, PersonalPoints, BusinessPoints, Attrition)
+turnoverPoints %>% group_by(Attrition, PersonalPoints, BusinessPoints) %>% summarize(count = n())
+
+```
+
+```{r}
+attritionTrain = data.frame(
+  as.factor(turnoverPoints$ID),
+  as.factor(turnoverPoints$PersonalPoints),
+  as.factor(turnoverPoints$BusinessPoints),
+  as.factor(turnoverPoints$Attrition)
+)
+names(attritionTrain) = c("ID", "Personal", "Business", "Attrition")
+
+
+
+# Split data into test/train and build KNN
+set.seed(10)
+iterations = 100
+splitPerc = .70
+trainIndices = sample(1:dim(attritionTrain)[1],round(splitPerc * dim(attritionTrain)[1]))
+train = attritionTrain[trainIndices,]
+test = attritionTrain[-trainIndices,]
+accs = data.frame(accuracy = numeric(iterations), k = numeric(iterations))
+for(i in 1:iterations)
+{
+    classifications = knn(train[,c(2,3)],test[,c(2,3)],train$Attrition, prob = TRUE, k = i)
+    table(test$Attrition,classifications)
+    CM = confusionMatrix(table(test$Attrition,classifications))
+  accs$accuracy[i] = CM$overall[1]
+  accs$k[i] = i
+}
+
+#plot used to review best K values
+plot(accs$k,accs$accuracy, type = "l", xlab = "k", ylab="Accuracy")
+
+classifications = knn(train[,c(2,3)],test[,c(2,3)],train$Attrition, prob = TRUE, k = accs$k[which.max(accs$accuracy)])
+CM = confusionMatrix(table(test$Attrition,classifications))
+CM
+
+# Open csv file for our predictions
+attritionTest = read.csv('CaseStudy2CompSet No Attrition.csv')
+# Set up the points system
+turnoverPoints = attritionTest %>% mutate(
+  PersonalPoints = (
+    ifelse(Age == 29, 1,0) +
+    ifelse(DistanceFromHome == 1, 1,0) +
+    ifelse(Education  == 3, 1,0) +
+    ifelse(EducationField  == "Life Sciences", 1,0) +
+    ifelse(EnvironmentSatisfaction  == 1, 1,0) +
+    ifelse(Gender  == "Male", 1,0) +
+    ifelse(MaritalStatus  == "Single", 1,0) +
+    ifelse(NumCompaniesWorked  == 1, 1,0) +
+    ifelse(RelationshipSatisfaction  == 4, 1,0) +
+    ifelse(WorkLifeBalance  == 3, 1,0)
+  ),
+  BusinessPoints = (
+    ifelse(Department == "Research % Development", 1,0) +
+    ifelse(JobInvolvement == 3, 1,0) +
+    ifelse(JobLevel == 1, 1,0) +
+    ifelse(JobRole == "Sales Executive" | JobRole == "Research Scientist", 1,0) +
+    ifelse(OverTime == "Yes", 1, 0) +
+    ifelse(PerformanceRating == 3, 1,0) +
+    ifelse(StockOptionLevel == 0, 1,0) +
+    ifelse(TrainingTimesLastYear == 2, 1,0) +
+    ifelse(YearsInCurrentRole == 0 | YearsInCurrentRole == 2, 1,0) +
+    ifelse(YearsSinceLastPromotion == 0, 1,0) +
+    ifelse(YearsWithCurrManager == 0, 1,0)
+  )
+)
+
+attritionTest = data.frame(
+  as.factor(turnoverPoints$ID),
+  as.factor(turnoverPoints$PersonalPoints),
+  as.factor(turnoverPoints$BusinessPoints)
+)
+names(attritionTest) = c("ID", "Personal", "Business")
+
+#
+for (i in attritionTest[1]) {
+  df1 = attritionTest %>% filter(ID == i) %>% select(Personal, Business)
+  df1knn = knn(attritionTrain[,c(2,3)], df1, attritionTrain$Attrition, k = 10, prob = TRUE)
+}
+
+finalPredictions = data.frame(attritionTest$ID[1:300], prediction=df1knn[1:300])
+names(finalPredictions) = c("ID", "Prediction")
+finalPredictions %>% filter(Prediction == "Yes")
+finalPredictions
+write_excel_csv(finalPredictions, "Case2PredictionsMauldin Attrition.csv")
+
+```
+
+##Predictions of Salary
+```{r}
+testSalary = read.csv('CaseStudy2CompSet No Salary.csv')
+
+trainSalary = data.frame(turnoverData[33], turnoverData[16], turnoverData[20])
+trainSalary
+
+set.seed(4)
+trainObs = sample(seq(1,dim(trainSalary)[1]),round(.75*dim(trainSalary)[1]),replace = FALSE)
+train = trainSalary[trainObs,]
+train
+test = testSalary
+test
+fit1 = lm(MonthlyIncome~YearsAtCompany+JobLevel, data = trainSalary)
+summary(fit1)
+fit1Preds = predict(fit1, newdata = test)
+finalSalaryPredictions = data.frame(ID=test$ID, Prediction=fit1Preds)
+finalSalaryPredictions
+write_excel_csv(finalSalaryPredictions, "Case2PredictionsMauldin Salary.csv")
+
+```
