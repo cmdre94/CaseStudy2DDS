@@ -29,7 +29,8 @@ library(openxlsx)
 turnoverData = read.csv('CaseStudy2-data.csv')
 
 ```
-## These helper functions aid in aggregating the data to set up the tables and charts.
+## Helper Functions 
+These helper functions aid in aggregating the data to set up the tables and charts.
 ```{r}
 turnover = data.frame(turnoverData)
 turnover = turnover %>% filter(Attrition == "Yes")
@@ -66,7 +67,8 @@ turnoverMax <- function(columnName, data, colString) {
 }
 
 ```
-## This table shows all Reasons and factors contributing to attrition.  The Reasons are the column names from the data set.  The factors are the factors in those columns. The Attrition Count is the number of times Attrittion equaled "Yes" per Attrition Factor.  It is sorted descending by Attrition Factor.
+## All Attrition Factors
+This table shows all Reasons and factors contributing to attrition.  The Reasons are the column names from the data set.  The factors are the factors in those columns. The Attrition Count is the number of times Attrittion equaled "Yes" per Attrition Factor.  It is sorted descending by Attrition Factor.
 ```{r}
 AgeColumn = turnoverMax(Age, data=turnover, "Age")
 BusinessTravelColumn = turnoverMax(BusinessTravel, data=turnover, "Business Travel")
@@ -166,16 +168,16 @@ turnoverFactorsSorted %>% select(Reason, `Attrition Factor`, `Attrition Count`)
 
 ```
 ## Top 3 Attrition Factors
-The top 3 attrition factors are Performance Rating of 3, Stock Option Level of 0, and Business Travel with a factor of Travel_Rarely.
+The top 3 attrition factors are Performance Rating of 3, Stock Option Level of 0, and Business Travel with a factor of Travel_Rarely.  These were obtained by using the group_by function on Attrition and each column name, and doing a count on the number of times Attrition = "Yes". The results are the total number of "Yes" for each factor.
 ```{r}
-turnoverFactorsBarChart = turnoverFactorsSorted %>% filter(Reason == "Performance Rating" | Reason == "Stock Option Level" | Reason == "Business Travel") %>% ggplot(aes(x=reorder(Reason, `Attrition Count`), y=`Attrition Count`, fill=`Attrition Factor`)) + geom_col(position="dodge2") + coord_flip() + xlab("Attrition Factor") + ggtitle("Top 3 Attrition Factors")
+turnoverFactorsBarChart = turnoverFactorsSorted %>% filter(Reason == "Performance Rating" | Reason == "Stock Option Level" | Reason == "Business Travel") %>% ggplot(aes(x=reorder(Reason, `Attrition Count`), y=`Attrition Count`, fill=`Attrition Factor`)) + geom_col(position="dodge2") + coord_flip() + xlab("Attrition Reason") + ggtitle("Top 3 Attrition Factors")
 ggplotly(turnoverFactorsBarChart)
 ```
 
 ## Reasons by Factor
-This shows all Reasons broken down by Factor. We ignore Standard Hours and Over 18 as all employees work standard hours and are over 18.
+This shows all Reasons broken down by Factor. We ignore Standard Hours and Over 18 as all employees work standard hours and are over 18.  Use the zoom tool to zoom on columns with multiple factors.
 ```{r}
-turnoverFactorsBarChart = turnoverFactorsSorted %>% ggplot(aes(x=reorder(Reason, `Attrition Count`), y=`Attrition Count`, fill=`Attrition Factor`)) + geom_col(position="dodge2") + coord_flip() + theme(legend.position = "")
+turnoverFactorsBarChart = turnoverFactorsSorted %>% ggplot(aes(x=reorder(Reason, `Attrition Count`), y=`Attrition Count`, fill=`Attrition Factor`)) + geom_col(position="dodge2") + coord_flip() + xlab("Attrition Reason") + ggtitle("All Attrition")
 ggplotly(turnoverFactorsBarChart, height=1000)
 ```
 ##Job Role Specific Trends
@@ -183,8 +185,10 @@ ggplotly(turnoverFactorsBarChart, height=1000)
 
 ```
 
-##Predictions of Attrition
-Personal Points
+## Predictions of Attrition
+I set up a point system to make the data more KNN friendly.  I chose the top factors and assigned them as Personal Points, or Business Points. If an employee has any of these characteristics, they get a point added, else they get 0. More points means an increased chance that Attrition will equal "Yes".
+
+## Personal Points
 Age	29
 DistanceFromHome	1
 Education	3
@@ -198,7 +202,7 @@ RelationshipSatisfaction	4
 TotalWorkingYears	
 WorkLifeBalance	3
 
-Business Points
+## Business Points
 BusinessTravel	Travel_Rarely	
 Department	Research & Development	
 JobInvolvement	3	
@@ -247,7 +251,7 @@ turnoverPoints = turnoverPoints %>% select(ID, PersonalPoints, BusinessPoints, A
 turnoverPoints %>% group_by(Attrition, PersonalPoints, BusinessPoints) %>% summarize(count = n())
 
 ```
-
+## KNN to Predict Attrition
 ```{r}
 attritionTrain = data.frame(
   as.factor(turnoverPoints$ID),
@@ -335,7 +339,8 @@ write_excel_csv(finalPredictions, "Case2PredictionsMauldin Attrition.csv")
 
 ```
 
-##Predictions of Salary
+## Predictions of Salary
+Here, I am using cross validation to predict the salary of a test dataset.
 ```{r}
 testSalary = read.csv('CaseStudy2CompSet No Salary.csv')
 
