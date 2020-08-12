@@ -164,7 +164,6 @@ YearsWithCurrManagerColumn = turnoverMax(YearsWithCurrManager, data=turnover, "Y
 turnoverFactors = rbind(turnoverFactors, YearsWithCurrManagerColumn)
 
 turnoverFactorsSorted = turnoverFactors  %>% arrange(desc(`Attrition Count`))
-turnoverFactorsSorted %>% select(Reason, `Attrition Factor`, `Attrition Count`)
 
 ```
 ## Top 3 Attrition Factors
@@ -182,13 +181,14 @@ ggplotly(turnoverFactorsBarChart, height=1000)
 ```
 ##Job Role Specific Trends
 ```{r}
-
+  turnoverData %>% ggplot(aes(x=DistanceFromHome)) + geom_bar()
 ```
 
 ## Predictions of Attrition
-I set up a point system to make the data more KNN friendly.  I chose the top factors and assigned them as Personal Points, or Business Points. If an employee has any of these characteristics, they get a point added, else they get 0. More points means an increased chance that Attrition will equal "Yes".
+I set up a point system to make the data more KNN friendly.  I chose the top factors and assigned them as Personal Points, or Business Points. If an employee has the Reason and Factor in this list, they get a point added, else they get 0. More points means an increased chance that Attrition will equal "Yes".
 
 ## Personal Points
+### Reason | Factor
 Age	29
 DistanceFromHome	1
 Education	3
@@ -207,15 +207,14 @@ BusinessTravel	Travel_Rarely
 Department	Research & Development	
 JobInvolvement	3	
 JobLevel	1	
-JobRole	Sales Executive	| Research Scientist
+JobRole	Sales Executive	or Research Scientist
 OverTime	Yes	
 PerformanceRating	3	
 StockOptionLevel	0	
 TrainingTimesLastYear	2	
-YearsInCurrentRole	0 |	2
+YearsInCurrentRole	0 or	2
 YearsSinceLastPromotion	0	
 YearsWithCurrManager	0	
-
 
 ```{r}
 # Set up the points system
@@ -247,49 +246,53 @@ turnoverPoints = turnoverData %>% mutate(
   )
 )
 
-turnoverPoints = turnoverPoints %>% select(ID, PersonalPoints, BusinessPoints, Attrition)
-turnoverPoints %>% group_by(Attrition, PersonalPoints, BusinessPoints) %>% summarize(count = n())
+attritionChart = turnoverPoints %>% ggplot(aes(x=PersonalPoints, y = BusinessPoints, fill = Attrition)) + geom_col(position="dodge2") + coord_flip()
 
-```
+ggplotly(attritionChart, height=1000)
+
 ## KNN to Predict Attrition
-```{r}
+
 attritionTrain = data.frame(
-  as.factor(turnoverPoints$ID),
-  as.factor(turnoverPoints$PersonalPoints),
-  as.factor(turnoverPoints$BusinessPoints),
-  as.factor(turnoverPoints$Attrition)
+  ID = turnoverPoints[1],
+  PersonalPoints = turnoverPoints[37],
+  BusinessPoints = turnoverPoints[38],
+  Attrition = turnoverPoints[3]
 )
-names(attritionTrain) = c("ID", "Personal", "Business", "Attrition")
+attritionTrain
 
 
 
 # Split data into test/train and build KNN
-set.seed(10)
+set.seed(100)
 iterations = 100
-splitPerc = .70
-trainIndices = sample(1:dim(attritionTrain)[1],round(splitPerc * dim(attritionTrain)[1]))
-train = attritionTrain[trainIndices,]
-test = attritionTrain[-trainIndices,]
-accs = data.frame(accuracy = numeric(iterations), k = numeric(iterations))
-for(i in 1:iterations)
+splitPerc = .80
+numks = 30
+
+masterAcc = matrix(nrow = iterations, ncol = numks)
+  
+for(j in 1:iterations)
 {
+  accs = data.frame(accuracy = numeric(30), k = numeric(30))
+  trainIndices = sample(1:dim(attritionTrain)[1],round(splitPerc * dim(attritionTrain)[1]))
+  train = attritionTrain[trainIndices,]
+  test = attritionTrain[-trainIndices,]
+  for(i in 1:numks)
+  {
     classifications = knn(train[,c(2,3)],test[,c(2,3)],train$Attrition, prob = TRUE, k = i)
-    table(test$Attrition,classifications)
-    CM = confusionMatrix(table(test$Attrition,classifications))
-  accs$accuracy[i] = CM$overall[1]
-  accs$k[i] = i
+    table(classifications,test$Attrition)
+    CM = confusionMatrix(table(classifications,test$Attrition))
+    masterAcc[j,i] = CM$overall[1]
+  }
+
 }
 
-#plot used to review best K values
-plot(accs$k,accs$accuracy, type = "l", xlab = "k", ylab="Accuracy")
+MeanAcc = colMeans(masterAcc)
 
-classifications = knn(train[,c(2,3)],test[,c(2,3)],train$Attrition, prob = TRUE, k = accs$k[which.max(accs$accuracy)])
-CM = confusionMatrix(table(test$Attrition,classifications))
-CM
+plot(seq(1,numks,1),MeanAcc, type = "l")
 
 # Open csv file for our predictions
 attritionTest = read.csv('CaseStudy2CompSet No Attrition.csv')
-# Set up the points system
+# Set up the points system for the test data. Reassign turnoverPoints
 turnoverPoints = attritionTest %>% mutate(
   PersonalPoints = (
     ifelse(Age == 29, 1,0) +
@@ -319,16 +322,15 @@ turnoverPoints = attritionTest %>% mutate(
 )
 
 attritionTest = data.frame(
-  as.factor(turnoverPoints$ID),
-  as.factor(turnoverPoints$PersonalPoints),
-  as.factor(turnoverPoints$BusinessPoints)
+  ID = turnoverPoints[1],
+  PersonalPoints = turnoverPoints[36],
+  BusinessPoints = turnoverPoints[37]
 )
-names(attritionTest) = c("ID", "Personal", "Business")
 
 #
 for (i in attritionTest[1]) {
-  df1 = attritionTest %>% filter(ID == i) %>% select(Personal, Business)
-  df1knn = knn(attritionTrain[,c(2,3)], df1, attritionTrain$Attrition, k = 10, prob = TRUE)
+  df1 = attritionTest %>% filter(ID == i) %>% select(PersonalPoints, BusinessPoints)
+  df1knn = knn(attritionTrain[,c(2,3)], df1, attritionTrain$Attrition, k = 3, prob = TRUE)
 }
 
 finalPredictions = data.frame(attritionTest$ID[1:300], prediction=df1knn[1:300])
