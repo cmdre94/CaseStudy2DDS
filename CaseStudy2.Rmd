@@ -87,7 +87,7 @@ turnoverFactors = rbind(turnoverFactors, EducationColumn)
 EducationFieldColumn = turnoverMax(EducationField, data=turnover, "Education Field")
 turnoverFactors = rbind(turnoverFactors, EducationFieldColumn)
 
-EnvironmentSatisfactionColumn = turnoverMax(EnvironmentSatisfaction, data=turnover, "Emvironment Satisfaction")
+EnvironmentSatisfactionColumn = turnoverMax(EnvironmentSatisfaction, data=turnover, "Environment Satisfaction")
 turnoverFactors = rbind(turnoverFactors, EnvironmentSatisfactionColumn)
 
 GenderColumn = turnoverMax(Gender, data=turnover, "Gender")
@@ -181,74 +181,68 @@ ggplotly(turnoverFactorsBarChart, height=1000)
 ```
 ##Job Role Specific Trends
 ```{r}
-  turnoverData %>% ggplot(aes(x=DistanceFromHome)) + geom_bar()
+trends = turnoverData %>% ggplot(aes(x=MonthlyIncome, y=JobRole, color=Attrition)) + geom_point() + ggtitle("Salary to Job Role") + xlab("Job Role") + ylab("Salary")
+ggplotly(trends)
 ```
 
 ## Predictions of Attrition
-I set up a point system to make the data more KNN friendly.  I chose the top factors and assigned them as Personal Points, or Business Points. If an employee has the Reason and Factor in this list, they get a point added, else they get 0. More points means an increased chance that Attrition will equal "Yes".
+I set up a point system to make the data more KNN friendly.  I chose the top factors and assigned them as Personal Points, or Business Points. The points are given based on the count of 'Yes'. Factors with more counts of 'Yes' rank higher.  The factors are listed here
 
 ## Personal Points
-### Reason | Factor
-Age	29
-DistanceFromHome	1
-Education	3
-EducationField	Life Sciences
-EnvironmentSatisfaction	1
-Gender	Male
-JobSatisfaction	
-MaritalStatus	Single
-NumCompaniesWorked	1
-RelationshipSatisfaction	4
-TotalWorkingYears	
-WorkLifeBalance	3
+### Reason | Factor | Num of 'Yes"
+Gender | Male | 87
+WorkLifeBalance |	3 | 80
+MaritalStatus |	Single | 70
+NumCompaniesWorked |	1 | 60
+Education |	3 | 55
+EducationField | Life Sciences | 53
+EnvironmentSatisfaction |	1 | 42
+RelationshipSatisfaction |	4 | 42
+DistanceFromHome | 1 | 17
+Age	| 29 | 12
 
 ## Business Points
-BusinessTravel	Travel_Rarely	
-Department	Research & Development	
-JobInvolvement	3	
-JobLevel	1	
-JobRole	Sales Executive	or Research Scientist
-OverTime	Yes	
-PerformanceRating	3	
-StockOptionLevel	0	
-TrainingTimesLastYear	2	
-YearsInCurrentRole	0 or	2
-YearsSinceLastPromotion	0	
-YearsWithCurrManager	0	
+PerformanceRating |	3	| 117
+StockOptionLevel |	0	| 98
+BusinessTravel |	Travel_Rarely	| 94
+JobLevel |	1	| 86
+OverTime |	Yes	| 80
+Department |	Research & Development | 75
+JobInvolvement | 3 | 67
+YearsSinceLastPromotion |	0	| 63
+TrainingTimesLastYear |	2 | 57
+JobRole |	Sales Executive	or Research Scientist | 33
 
 ```{r}
 # Set up the points system
 turnoverPoints = turnoverData %>% mutate(
   PersonalPoints = (
-    ifelse(Age == 29, 1,0) +
-    ifelse(DistanceFromHome == 1, 1,0) +
-    ifelse(Education  == 3, 1,0) +
-    ifelse(EducationField  == "Life Sciences", 1,0) +
-    ifelse(EnvironmentSatisfaction  == 1, 1,0) +
-    ifelse(Gender  == "Male", 1,0) +
-    ifelse(MaritalStatus  == "Single", 1,0) +
-    ifelse(NumCompaniesWorked  == 1, 1,0) +
-    ifelse(RelationshipSatisfaction  == 4, 1,0) +
-    ifelse(WorkLifeBalance  == 3, 1,0)
+    ifelse(Age == 29, 12,0) +
+    ifelse(DistanceFromHome == 1, 17,0) +
+    ifelse(Education  == 3, 55,0) +
+    ifelse(EducationField  == "Life Sciences", 53,0) +
+    ifelse(EnvironmentSatisfaction  == 1, 42,0) +
+    ifelse(Gender  == "Male", 87,0) +
+    ifelse(MaritalStatus  == "Single", 70,0) +
+    ifelse(NumCompaniesWorked  == 1, 60,0) +
+    ifelse(RelationshipSatisfaction  == 4, 42,0) +
+    ifelse(WorkLifeBalance  == 3, 80,0)
   ),
   BusinessPoints = (
-    ifelse(Department == "Research % Development", 1,0) +
-    ifelse(JobInvolvement == 3, 1,0) +
-    ifelse(JobLevel == 1, 1,0) +
-    ifelse(JobRole == "Sales Executive" | JobRole == "Research Scientist", 1,0) +
-    ifelse(OverTime == "Yes", 1, 0) +
-    ifelse(PerformanceRating == 3, 1,0) +
-    ifelse(StockOptionLevel == 0, 1,0) +
-    ifelse(TrainingTimesLastYear == 2, 1,0) +
-    ifelse(YearsInCurrentRole == 0 | YearsInCurrentRole == 2, 1,0) +
-    ifelse(YearsSinceLastPromotion == 0, 1,0) +
-    ifelse(YearsWithCurrManager == 0, 1,0)
+    ifelse(BusinessTravel == "Travel_Rarely", 94, 0) +
+    ifelse(Department == "Research % Development", 75,0) +
+    ifelse(JobInvolvement == 3, 67,0) +
+    ifelse(JobLevel == 1, 86,0) +
+    ifelse(JobRole == "Sales Executive" | JobRole == "Research Scientist", 33,0) +
+    ifelse(OverTime == "Yes", 80, 0) +
+    ifelse(PerformanceRating == 3, 117,0) +
+    ifelse(StockOptionLevel == 0, 98,0) +
+    ifelse(TrainingTimesLastYear == 2, 57,0) +
+    ifelse(YearsSinceLastPromotion == 0, 63,0)
   )
 )
 
-attritionChart = turnoverPoints %>% ggplot(aes(x=PersonalPoints, y = BusinessPoints, fill = Attrition)) + geom_col(position="dodge2") + coord_flip()
 
-ggplotly(attritionChart, height=1000)
 
 ## KNN to Predict Attrition
 
@@ -259,13 +253,13 @@ attritionTrain = data.frame(
   Attrition = turnoverPoints[3]
 )
 attritionTrain
-
-
+attritionChart = attritionTrain %>% ggplot(aes(x = BusinessPoints, y = PersonalPoints, color = Attrition)) + geom_point() + ggtitle("Attrition Points System for Training Set") + xlab("Business Points") + ylab("Personal Points")
+ggplotly(attritionChart)
 
 # Split data into test/train and build KNN
 set.seed(100)
 iterations = 100
-splitPerc = .80
+splitPerc = .70
 numks = 30
 
 masterAcc = matrix(nrow = iterations, ncol = numks)
@@ -287,37 +281,47 @@ for(j in 1:iterations)
 }
 
 MeanAcc = colMeans(masterAcc)
-
 plot(seq(1,numks,1),MeanAcc, type = "l")
+
+trainIndices = sample(1:dim(attritionTrain)[1],round(splitPerc * dim(attritionTrain)[1]))
+train = attritionTrain[trainIndices,]
+test = attritionTrain[-trainIndices,]
+
+classifications = knn(train[,c(2,3)],test[,c(2,3)],train$Attrition, prob = TRUE, k = 3)
+table(classifications,test$Attrition)
+CM = confusionMatrix(table(classifications,test$Attrition))
+CM
+```
+
+```{r}
 
 # Open csv file for our predictions
 attritionTest = read.csv('CaseStudy2CompSet No Attrition.csv')
 # Set up the points system for the test data. Reassign turnoverPoints
 turnoverPoints = attritionTest %>% mutate(
   PersonalPoints = (
-    ifelse(Age == 29, 1,0) +
-    ifelse(DistanceFromHome == 1, 1,0) +
-    ifelse(Education  == 3, 1,0) +
-    ifelse(EducationField  == "Life Sciences", 1,0) +
-    ifelse(EnvironmentSatisfaction  == 1, 1,0) +
-    ifelse(Gender  == "Male", 1,0) +
-    ifelse(MaritalStatus  == "Single", 1,0) +
-    ifelse(NumCompaniesWorked  == 1, 1,0) +
-    ifelse(RelationshipSatisfaction  == 4, 1,0) +
-    ifelse(WorkLifeBalance  == 3, 1,0)
+    ifelse(Age == 29, 12,0) +
+    ifelse(DistanceFromHome == 1, 17,0) +
+    ifelse(Education  == 3, 55,0) +
+    ifelse(EducationField  == "Life Sciences", 53,0) +
+    ifelse(EnvironmentSatisfaction  == 1, 42,0) +
+    ifelse(Gender  == "Male", 87,0) +
+    ifelse(MaritalStatus  == "Single", 70,0) +
+    ifelse(NumCompaniesWorked  == 1, 60,0) +
+    ifelse(RelationshipSatisfaction  == 4, 42,0) +
+    ifelse(WorkLifeBalance  == 3, 80,0)
   ),
   BusinessPoints = (
-    ifelse(Department == "Research % Development", 1,0) +
-    ifelse(JobInvolvement == 3, 1,0) +
-    ifelse(JobLevel == 1, 1,0) +
-    ifelse(JobRole == "Sales Executive" | JobRole == "Research Scientist", 1,0) +
-    ifelse(OverTime == "Yes", 1, 0) +
-    ifelse(PerformanceRating == 3, 1,0) +
-    ifelse(StockOptionLevel == 0, 1,0) +
-    ifelse(TrainingTimesLastYear == 2, 1,0) +
-    ifelse(YearsInCurrentRole == 0 | YearsInCurrentRole == 2, 1,0) +
-    ifelse(YearsSinceLastPromotion == 0, 1,0) +
-    ifelse(YearsWithCurrManager == 0, 1,0)
+    ifelse(BusinessTravel == "Travel_Rarely", 94, 0) +
+    ifelse(Department == "Research % Development", 75,0) +
+    ifelse(JobInvolvement == 3, 67,0) +
+    ifelse(JobLevel == 1, 86,0) +
+    ifelse(JobRole == "Sales Executive" | JobRole == "Research Scientist", 33,0) +
+    ifelse(OverTime == "Yes", 80, 0) +
+    ifelse(PerformanceRating == 3, 117,0) +
+    ifelse(StockOptionLevel == 0, 98,0) +
+    ifelse(TrainingTimesLastYear == 2, 57,0) +
+    ifelse(YearsSinceLastPromotion == 0, 63,0)
   )
 )
 
@@ -330,7 +334,7 @@ attritionTest = data.frame(
 #
 for (i in attritionTest[1]) {
   df1 = attritionTest %>% filter(ID == i) %>% select(PersonalPoints, BusinessPoints)
-  df1knn = knn(attritionTrain[,c(2,3)], df1, attritionTrain$Attrition, k = 3, prob = TRUE)
+  df1knn = knn(attritionTrain[,c(2,3)], df1, attritionTrain$Attrition, k = 5, prob = TRUE)
 }
 
 finalPredictions = data.frame(attritionTest$ID[1:300], prediction=df1knn[1:300])
