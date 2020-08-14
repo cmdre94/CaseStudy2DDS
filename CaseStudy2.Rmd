@@ -4,7 +4,9 @@ author: "Andre Mauldin"
 date: "8/1/2020"
 output: html_document
 ---
-## In this study we are analyzing causes of attrition.  We will also set up a model to predict future attrition.
+## Attrition Analysis
+
+In this study we are analyzing causes of attrition.  We will also set up a model to predict future attrition.  Here is the youtube link to accompany this markdown.  https://youtu.be/7kNdXbl2k6U
 ```{r}
 library(magrittr)
 library(ggplot2)
