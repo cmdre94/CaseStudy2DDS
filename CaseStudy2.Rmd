@@ -181,8 +181,11 @@ ggplotly(turnoverFactorsBarChart, height=1000)
 ```
 ##Job Role Specific Trends
 ```{r}
-trends = turnoverData %>% ggplot(aes(x=MonthlyIncome, y=JobRole, color=Attrition)) + geom_point() + ggtitle("Salary to Job Role") + xlab("Job Role") + ylab("Salary")
+trends = turnoverData %>% ggplot(aes(x=MonthlyIncome, y=JobRole, color=Attrition)) + geom_point() + ggtitle("Salary to Job Role") + ylab("Job Role") + xlab("Salary")
 ggplotly(trends)
+
+turnoverData %>% filter(JobRole == "Research Scientist") %>% group_by(Education, JobRole) %>% summarize(count = n())
+
 ```
 
 ## Predictions of Attrition
@@ -352,7 +355,7 @@ testSalary = read.csv('CaseStudy2CompSet No Salary.csv')
 
 trainSalary = data.frame(turnoverData[33], turnoverData[16], turnoverData[20])
 trainSalary
-
+trainSalary %>% ggplot(aes(x=MonthlyIncome, y=YearsAtCompany+JobLevel)) + geom_point() + ggtitle("Salary Prediction Plots") + xlab("Monthly Income") + ylab("Years At Company + Job Level") + geom_smooth(method="lm")
 set.seed(4)
 trainObs = sample(seq(1,dim(trainSalary)[1]),round(.75*dim(trainSalary)[1]),replace = FALSE)
 train = trainSalary[trainObs,]
